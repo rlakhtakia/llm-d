@@ -118,6 +118,26 @@ releases:
     {{- else }}
       - ms-inference-scheduling/values.yaml
     {{- end }}
+    {{- if eq .Environment.Name "gke" }}
+      - decode:
+          containers:
+          - name: "vllm"
+            resources:
+              requests:
+                cpu: "16"
+                nvidia.com/gpu: "2"
+              limits:
+                cpu: "32"
+                nvidia.com/gpu: "2"
+          extraConfig:
+            nodeSelector:
+              cloud.google.com/gke-accelerator: nvidia-h100-80gb
+            tolerations:
+            - key: "nvidia.com/gpu"
+              operator: "Equal"
+              value: "present"
+              effect: "NoSchedule"
+      {{- end }}
     set:
     {{- if or (eq .Environment.Name "gke") (eq .Environment.Name "gke_tpu") }}  
       - name: "decode.monitoring.podmonitor.enabled"
