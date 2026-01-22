@@ -123,6 +123,36 @@ jobs:
             --namespace "${NAMESPACE}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Request TPU v6e
+        if: matrix.accelerator.name == 'TPU'
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: autoscaling.gke.io/v1
+          kind: ProvisioningRequest
+          metadata:
+            name: nightly-tpu-test
+          spec:
+            provisioningClassName: tpu-v6e-slice
+            parameters:
+              nodeSelector:
+                cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+            payload:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: test-runner
+                      image: gcr.io/your-project/test-image:latest
+                      resources:
+                        requests:
+                          google.com/tpu: 8
+                        limits:
+                          google.com/tpu: 8
+          EOF
+
+          # Wait for the status to be Provisioned
+          kubectl wait --for=condition=Provisioned provisioningrequest/nightly-tpu-test --timeout=20m
+
       - name: Deploy model service and GIE with Helmfile
         run: |
           cd guides/inference-scheduling

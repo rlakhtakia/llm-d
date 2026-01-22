@@ -22,8 +22,14 @@ decode:
   replicas: 2
   extraConfig:
     nodeSelector:
+<<<<<<< HEAD
       cloud.google.com/gke-tpu-topology: "2x2x1"
       cloud.google.com/gke-tpu-accelerator: "tpu7x"
+=======
+      cloud.google.com/gke-tpu-topology: "2x4"
+      cloud.google.com/gke-tpu-accelerator: "tpu-v6e-slice"
+      cloud.google.com/gke-nodepool: "tpu-nodepool-v6e-dws"
+>>>>>>> 539de98 (Update tpu test to use new nodepool)
   monitoring:
     podmonitor:
       enabled: true
