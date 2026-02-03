@@ -41,7 +41,7 @@ jobs:
       GCP_PROJECT_ID: llm-d-scale
       GKE_CLUSTER_NAME: llm-d-e2e-us-south1-2
       GKE_CLUSTER_ZONE: us-south1
-      NAMESPACE: llm-d-wide-ep
+      NAMESPACE: llm-d-wide-epp
       INFERENCEPOOLVERSION: v1.2.1
       GATEWAY: gke-l7-regional-external-managed
       GATEWAY_TYPE: gke
@@ -115,6 +115,7 @@ jobs:
       - name: Deploy model server
         run: |
           cd guides/wide-ep-lws
+          kubectl delete -k ./manifests/modelserver/gke -n ${NAMESPACE} --ignore-not-found
           echo "Deploying Model Server..."
           kubectl apply -k ./manifests/modelserver/gke -n ${NAMESPACE} | tee ~/wide-ep-deployment.log
           echo "---------------------------------------" >> ~/wide-ep-deployment.log
@@ -137,6 +138,7 @@ jobs:
       - name: Deploy Gateway and HTTPRoute
         run: |
           cd guides/recipes/gateway
+          kubectl delete -k ./gke-l7-regional-external-managed -n ${NAMESPACE} --ignore-not-found
           echo "Deploying Gateway and HTTPRoute..."
           kubectl apply -k ./gke-l7-regional-external-managed -n ${NAMESPACE} | tee ~/wide-ep-deployment.log
           kubectl get gateway -n ${NAMESPACE}
@@ -148,7 +150,7 @@ jobs:
             --for=condition=Ready \
             --all \
             -n "${NAMESPACE}" \
-            --timeout=35m
+            --timeout=45m
           sleep 480 # Allow extra time for model loading in Wide EP setup
           echo "✅ All pods are ready."
           kubectl get pods -n "${NAMESPACE}"
@@ -250,5 +252,5 @@ jobs:
         run: |
           cd guides
           helm uninstall llm-d-infpool -n ${NAMESPACE}
-          kubectl delete -k ./wide-ep-lws/manifests/modelserver/gke -n ${NAMESPACE}
-          kubectl delete -k ./recipes/gateway/gke-l7-regional-external-managed -n ${NAMESPACE}
+          kubectl delete -k ./wide-ep-lws/manifests/modelserver/gke -n ${NAMESPACE} --ignore-not-found
+          kubectl delete -k ./recipes/gateway/gke-l7-regional-external-managed -n ${NAMESPACE} --ignore-not-found

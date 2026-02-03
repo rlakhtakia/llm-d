@@ -39,6 +39,21 @@ patches:
       # Prefer the same block and subblock.
       # https://github.com/llm-d/llm-d/tree/main/docs/infra-providers/gke#configuring-support-for-rdma-on-gke-workload-pods
       - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          # REQUIRED: Overrides the registration path that often fails on GKE managed drivers
+          name: DEEP_EP_ENABLE_MEMREG
+          value: "0"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          # REQUIRED: Forces the use of the standard CUDA IPC path compatible with hostNetwork
+          name: NVSHMEM_FORCE_BOOTSTRAP_PRIMARY
+          value: "1"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/hostNetwork
+        value: true
+      - op: add
         path: /spec/leaderWorkerTemplate/workerTemplate/spec/affinity
         value:
           podAffinity:
@@ -122,8 +137,13 @@ patches:
       - op: add
         path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
         value:
-          name: NVSHMEM_DISABLED_GDRCOPY
+          name: NVSHMEM_DISABLE_GDRCOPY
           value: "true"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: NVSHMEM_QP_DEPTH
+          value: "1024"
       # We add the volume for different providers since the hostPath can be different.
       - op: replace
         path: /spec/leaderWorkerTemplate/workerTemplate/spec/volumes/1
