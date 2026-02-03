@@ -98,7 +98,9 @@ Currently in the `inference-scheduling` example we suppport configurations for `
 ```bash
 helmfile apply -e xpu  -n ${NAMESPACE} # targets istio as gateway provider with XPU hardware
 # or
-helmfile apply -e gke_tpu  -n ${NAMESPACE} # targets GKE externally managed as gateway provider with TPU hardware
+helmfile apply -e gke_tpu_v6  -n ${NAMESPACE} # targets GKE externally managed as gateway provider with TPU v6e hardware
+# or
+helmfile apply -e gke_tpu_v7  -n ${NAMESPACE} # targets GKE externally managed as gateway provider with TPU v7 hardware
 # or
 helmfile apply -e cpu  -n ${NAMESPACE} # targets istio as gateway provider with CPU hardware
 ```
