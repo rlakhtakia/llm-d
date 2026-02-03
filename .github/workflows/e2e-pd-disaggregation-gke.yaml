@@ -39,8 +39,8 @@ jobs:
 
     env:
       GCP_PROJECT_ID: llm-d-scale
-      GKE_CLUSTER_NAME: llm-d-e2e-us-east5
-      GKE_CLUSTER_ZONE: us-east5
+      GKE_CLUSTER_NAME: llm-d-e2e-us-south1-2
+      GKE_CLUSTER_ZONE: us-south1
       NAMESPACE: llm-d-pd
       GATEWAY: gke-l7-regional-external-managed
       GATEWAY_TYPE: gke
@@ -183,7 +183,7 @@ jobs:
             --for=condition=Ready \
             --all \
             -n "${NAMESPACE}" \
-            --timeout=15m
+            --timeout=20m
           sleep 480 # Allow extra time for model loading in PD setup
           echo "✅ All pods are ready."
           kubectl get pods -n "${NAMESPACE}"
