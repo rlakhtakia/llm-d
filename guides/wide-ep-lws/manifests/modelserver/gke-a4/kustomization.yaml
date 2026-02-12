@@ -14,3 +14,17 @@ patches:
         value:
           name: KV_CACHE_MEMORY_BYTES
           value: "63000000000"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: VLLM_MPC_NETWORKS
+          value: "rdma-0,rdma-1,rdma-2,rdma-3,rdma-4,rdma-5,rdma-6,rdma-7"
+  - target:
+      kind: LeaderWorkerSet
+      name: wide-ep-llm-d-prefill
+    patch: |-
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: VLLM_MPC_NETWORKS
+          value: "rdma-0,rdma-1,rdma-2,rdma-3,rdma-4,rdma-5,rdma-6,rdma-7"

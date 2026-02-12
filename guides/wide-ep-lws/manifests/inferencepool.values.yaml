@@ -50,6 +50,11 @@ inferenceExtension:
         - pluginRef: random-picker
 
 inferencePool:
+  targetPorts:
+    - number: 8000
+    - number: 8001
+    - number: 8200
+    - number: 8201
   modelServers:
     matchLabels:
       llm-d.ai/inference-serving: "true"
