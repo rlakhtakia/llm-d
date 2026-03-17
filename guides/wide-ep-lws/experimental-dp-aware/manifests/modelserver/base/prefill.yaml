@@ -60,22 +60,31 @@ spec:
                 #################
                 START_RANK=$(( ${LWS_WORKER_INDEX:-0} * DP_SIZE_LOCAL ))
 
-                exec vllm serve \
-                  deepseek-ai/DeepSeek-R1-0528 \
-                  --host=0.0.0.0 \
-                  --port=8000 \
-                  --disable-access-log-for-endpoints=/health,/metrics,/v1/models,/readyz \
-                  --data-parallel-multi-port-external-lb \
-                  --data-parallel-supervisor-port=8008 \
-                  --data-parallel-size $((LWS_GROUP_SIZE * DP_SIZE_LOCAL)) \
-                  --data-parallel-size-local $DP_SIZE_LOCAL \
-                  --data-parallel-start-rank $START_RANK \
-                  --data-parallel-address="${LWS_LEADER_ADDRESS}" \
-                  --data-parallel-rpc-port=5555 \
-                  --enable-expert-parallel \
-                  --kv_transfer_config '{"kv_connector":"NixlConnector","kv_role":"kv_both","kv_load_failure_policy":"fail"}' \
-                  --all2all-backend deepep_high_throughput \
+                [ -n "${KV_CACHE_MEMORY_BYTES}" ] && EXTRA_VLLM_ARGS=(--kv-cache-memory-bytes="${KV_CACHE_MEMORY_BYTES}") || EXTRA_VLLM_ARGS=()
+
+                # For GKE A4 (B200) Blackwell instances, single-pod prefill groups (LWS_GROUP_SIZE=1)
+                # and decode leader pods must rendezvous over local loopback (127.0.0.1) to avoid socket
+                # binding collisions on secondary RDMA network interfaces (eth2-eth9) during startup.
+                if [ "${LWS_GROUP_SIZE:-1}" -eq 1 ] || [ "${LWS_WORKER_INDEX:-0}" -eq 0 ]; then
+                    # Prefill pods AND the Decode Leader pod automatically use safe local loopback
+                    DP_ADDR="127.0.0.1"
+                else
+                    # Decode Worker pods dynamically look up the leader's network IP
+                    DP_ADDR="${LWS_LEADER_ADDRESS}"
+                fi
+
+                # Common vLLM flag arguments shared across all prefill ranks
+                COMMON_VLLM_ARGS=(
+                  --disable-uvicorn-access-log
+                  --tensor-parallel-size=1
+                  --data-parallel-size $((LWS_GROUP_SIZE * DP_SIZE_LOCAL))
+                  --data-parallel-address="${DP_ADDR}"
+                  --data-parallel-rpc-port=5555
+                  --enable-expert-parallel
+                  --kv_transfer_config '{"kv_connector":"NixlConnector","kv_role":"kv_both","kv_load_failure_policy":"fail"}'
+                  --all2all-backend deepep_high_throughput
                   --max-model-len 65536
+                  "${EXTRA_VLLM_ARGS[@]}"
                   # To enable tracing, add:
                   # --otlp-traces-endpoint http://otel-collector:4317 \
                   # --collect-detailed-traces all

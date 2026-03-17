@@ -90,6 +90,21 @@ CoreWeave are tested Kubernetes providers for this well-lit path. You can custom
 
 <!-- TABS:START -->
 
+<!-- TAB:GKE (H200):default -->
+#### GKE (H200)
+
+```bash
+kubectl apply -k ./manifests/modelserver/gke -n ${NAMESPACE}
+```
+
+<!-- TAB:GKE (B200) -->
+#### GKE (B200)
+
+```bash
+# Deploy on GKE for B200 on the a4 instance type to work around a known vLLM memory issue
+kubectl apply -k ./manifests/modelserver/gke-a4 -n ${NAMESPACE}
+```
+
 <!-- TAB:CoreWeave -->
 #### CoreWeave
 

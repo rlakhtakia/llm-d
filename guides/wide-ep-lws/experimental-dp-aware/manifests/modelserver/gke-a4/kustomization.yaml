@@ -1,0 +1,65 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../gke
+patches:
+  - target:
+      kind: LeaderWorkerSet
+      name: wide-ep-llm-d-decode
+    patch: |-
+      apiVersion: leaderworkerset.x-k8s.io/v1
+      kind: LeaderWorkerSet
+      metadata:
+        name: wide-ep-llm-d-decode
+      spec:
+        leaderWorkerTemplate:
+          workerTemplate:
+            spec:
+              volumes:
+                - name: dshm
+                  emptyDir:
+                    medium: Memory
+                    sizeLimit: 64Gi
+              containers:
+                - name: vllm
+                  env:
+                    - name: KV_CACHE_MEMORY_BYTES
+                      value: "63000000000"
+                    - name: NCCL_NET
+                      value: "Socket"
+                    - name: NCCL_TUNER_CONFIG_PATH
+                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
+                    - name: NCCL_DEBUG
+                      value: "INFO"
+                    - name: BASH_ENV
+                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
+  - target:
+      kind: LeaderWorkerSet
+      name: wide-ep-llm-d-prefill
+    patch: |-
+      apiVersion: leaderworkerset.x-k8s.io/v1
+      kind: LeaderWorkerSet
+      metadata:
+        name: wide-ep-llm-d-prefill
+      spec:
+        leaderWorkerTemplate:
+          workerTemplate:
+            spec:
+              volumes:
+                - name: dshm
+                  emptyDir:
+                    medium: Memory
+                    sizeLimit: 64Gi
+              containers:
+                - name: vllm
+                  env:
+                    - name: KV_CACHE_MEMORY_BYTES
+                      value: "45000000000"
+                    - name: NCCL_NET
+                      value: "Socket"
+                    - name: NCCL_TUNER_CONFIG_PATH
+                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
+                    - name: NCCL_DEBUG
+                      value: "INFO"
+                    - name: BASH_ENV
+                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
