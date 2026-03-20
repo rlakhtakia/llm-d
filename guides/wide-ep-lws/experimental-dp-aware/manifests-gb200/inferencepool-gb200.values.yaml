@@ -55,17 +55,13 @@ inferencePool:
     - number: 8001
     - number: 8002
     - number: 8003
-    - number: 8004
-    - number: 8005
-    - number: 8006
-    - number: 8007
   modelServerType: vllm
   modelServerProtocol: http
   modelServers:
     matchLabels:
       llm-d.ai/inference-serving: "true"
       llm-d.ai/guide: "wide-ep-lws"
-      llm-d.ai/model: DeepSeek-R1-0528
+      llm-d.ai/model: nvidia/DeepSeek-R1-0528-NVFP4-v2
 
 provider:
   name: istio

@@ -1,0 +1,538 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: a4x-baker-wfi
+---
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  labels:
+    llm-d.ai/accelerator-variant: gpu
+    llm-d.ai/accelerator-vendor: nvidia
+    llm-d.ai/guide: wide-ep-lws
+    llm-d.ai/inference-serving: "true"
+    llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+    llm-d.ai/role: decode
+  name: wide-ep-llm-d-decode
+spec:
+  leaderWorkerTemplate:
+    size: 2
+    workerTemplate:
+      metadata:
+        annotations:
+          networking.gke.io/default-interface: eth0
+          networking.gke.io/interfaces: |
+            [
+              {"interfaceName":"eth0","network":"default"},
+              {"interfaceName":"eth2","network":"rdma-0"},
+              {"interfaceName":"eth3","network":"rdma-1"},
+              {"interfaceName":"eth4","network":"rdma-2"},
+              {"interfaceName":"eth5","network":"rdma-3"}
+            ]
+        labels:
+          llm-d.ai/accelerator-variant: gpu
+          llm-d.ai/accelerator-vendor: nvidia
+          llm-d.ai/guide: wide-ep-lws
+          llm-d.ai/inference-serving: "true"
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+          llm-d.ai/role: decode
+      spec:
+        affinity:
+          podAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    llm-d.ai/role: decode
+                matchLabelKeys:
+                - component
+                topologyKey: cloud.google.com/gce-topology-block
+              weight: 2
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    llm-d.ai/role: decode
+                matchLabelKeys:
+                - component
+                topologyKey: cloud.google.com/gce-topology-subblock
+              weight: 1
+        containers:
+        - args:
+          - |-
+            # Clear /dev/shm on start to prevent running out of space when crashes occur
+            # https://github.com/llm-d/llm-d/issues/352
+            find /dev/shm -type f -delete
+
+            export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/opt/nvshmem-v3.4.5-0/lib:/opt/nvshmem-v3.4.5-0/lib64:/opt/ucx/lib:/opt/ucx/lib64:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH}
+            export LIBRARY_PATH=/usr/local/nvidia/lib64:$LIBRARY_PATH
+
+            #################
+            # RUN vLLM decode workers
+            #################
+            START_RANK=$(( ${LWS_WORKER_INDEX:-0} * DP_SIZE_LOCAL ))
+
+            COMMON_VLLM_ARGS=(
+              --disable-uvicorn-access-log
+              --data-parallel-size $((LWS_GROUP_SIZE * DP_SIZE_LOCAL))
+              --data-parallel-address="${LWS_LEADER_ADDRESS}"
+              --data-parallel-rpc-port=5555
+              --data-parallel-external-lb
+              --enable-expert-parallel
+              --kv_transfer_config '{"kv_connector":"NixlConnector","kv_role":"kv_both","kv_load_failure_policy":"fail"}'
+              --all2all-backend "deepep_low_latency"
+              --kv-cache-memory-bytes=${KV_CACHE_MEMORY_BYTES-}
+            )
+
+            CUDA_VISIBLE_DEVICES="0" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8200 --data-parallel-rank=$((START_RANK + 0)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="1" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8201 --data-parallel-rank=$((START_RANK + 1)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="2" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8202 --data-parallel-rank=$((START_RANK + 2)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="3" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8203 --data-parallel-rank=$((START_RANK + 3)) "${COMMON_VLLM_ARGS[@]}" &
+            wait
+          - vllm-parallel-launcher
+          command:
+          - /bin/bash
+          - -c
+          env:
+          - name: VLLM_MOE_DP_CHUNK_SIZE
+            value: "384"
+          - name: DP_SIZE_LOCAL
+            value: "4"
+          - name: TP_SIZE
+            value: "1"
+          - name: TRITON_LIBCUDA_PATH
+            value: /usr/lib64
+          - name: VLLM_SKIP_P2P_CHECK
+            value: "1"
+          - name: VLLM_USE_DEEP_GEMM
+            value: "1"
+          - name: NVSHMEM_CUMEM_HANDLE_TYPE
+            value: FABRIC
+          - name: VLLM_DEEPEP_LOW_LATENCY_USE_MNNVL
+            value: "1"
+          - name: VLLM_DEEPEPLL_NVFP4_DISPATCH
+            value: "1"
+          - name: VLLM_FLASHINFER_MOE_BACKEND
+            value: masked_gemm
+          - name: NVIDIA_GDRCOPY
+            value: enabled
+          - name: NVSHMEM_REMOTE_TRANSPORT
+            value: ibgda
+          - name: NVSHMEM_IB_ENABLE_IBGDA
+            value: "true"
+          - name: NVSHMEM_BOOTSTRAP_UID_SOCK_IFNAME
+            value: eth0
+          - name: GLOO_SOCKET_IFNAME
+            value: eth0
+          - name: NCCL_SOCKET_IFNAME
+            value: eth0
+          - name: VLLM_LOGGING_LEVEL
+            value: DEBUG
+          - name: NVSHMEM_DISABLE_CUDA_VMM
+            value: "0"
+          - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: VLLM_TORCH_PROFILER_DIR
+            value: /traces
+          - name: CUDA_CACHE_PATH
+            value: /var/cache/vllm/cuda
+          - name: CCACHE_DIR
+            value: /var/cache/vllm/ccache
+          - name: VLLM_CACHE_ROOT
+            value: /var/cache/vllm/vllm
+          - name: FLASHINFER_WORKSPACE_BASE
+            value: /var/cache/vllm/flashinfer
+          - name: FLASHINFER_CACHE_DIR
+            value: /var/cache/vllm/flashinfer_cache_extdp
+          - name: HF_HUB_CACHE
+            value: /var/cache/huggingface
+          - name: UCX_LOG_LEVEL
+            value: debug
+          - name: NIXL_LOG_LEVEL
+            value: DEBUG
+          - name: DEEP_EP_DEVICE_TO_HCA_MAPPING
+            value: 0:mlx5_0:1,1:mlx5_1:1,2:mlx5_2:1,3:mlx5_3:1
+          - name: BASH_ENV
+            value: /usr/local/gib/scripts/set_nccl_env.sh
+          - name: NVSHMEM_DISABLE_GDRCOPY
+            value: "1"
+          - name: KV_CACHE_MEMORY_BYTES
+            value: "2147483648"
+          image: quay.io/tms/llm-d-cuda-dev:ef2c4f7
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: rank0
+            periodSeconds: 30
+            timeoutSeconds: 5
+          name: vllm
+          ports:
+          - containerPort: 8200
+            name: rank0
+            protocol: TCP
+          - containerPort: 8201
+            name: rank1
+            protocol: TCP
+          - containerPort: 8202
+            name: rank2
+            protocol: TCP
+          - containerPort: 8203
+            name: rank3
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /v1/models
+              port: rank0
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            claims:
+            - name: compute-domain-channel
+            limits:
+              memory: 512Gi
+              nvidia.com/gpu: "4"
+            requests:
+              cpu: 32
+              memory: 512Gi
+              nvidia.com/gpu: "4"
+          securityContext:
+            capabilities:
+              add:
+              - IPC_LOCK
+              - SYS_RAWIO
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          startupProbe:
+            failureThreshold: 2700
+            httpGet:
+              path: /health
+              port: rank0
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 5
+          volumeMounts:
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /var/cache/huggingface
+            name: hf-cache
+          - mountPath: /var/cache/vllm
+            name: jit-cache
+          - mountPath: /usr/local/gib
+            name: gib
+          - mountPath: /sys/class/net
+            name: host-net
+            readOnly: true
+        hostIPC: true
+        initContainers:
+        - args:
+          - --port=8000
+          - --vllm-port=8200
+          - --data-parallel-size=4
+          - --connector=nixlv2
+          - --zap-log-level=5
+          - --secure-proxy=false
+          - --enable-prefiller-sampling
+          image: ghcr.io/llm-d/llm-d-routing-sidecar:v0.5.0
+          imagePullPolicy: Always
+          name: routing-proxy
+          ports:
+          - containerPort: 8000
+            name: sidecar
+            protocol: TCP
+          resources: {}
+          restartPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+        nodeSelector:
+          cloud.google.com/gke-nodepool: a4x-highgpu-4g-a4x-pool-4
+        resourceClaims:
+        - name: compute-domain-channel
+          resourceClaimTemplateName: a4x-compute-domain-channel
+        serviceAccountName: a4x-baker-wfi
+        tolerations:
+        - operator: Exists
+        volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+          name: dshm
+        - hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/shared_disk/vllm-hf-cache/
+            type: DirectoryOrCreate
+          name: hf-cache
+        - hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/shared_disk/vllm-jit-cache/
+            type: DirectoryOrCreate
+          name: jit-cache
+        - hostPath:
+            path: /home/kubernetes/bin/gib
+            type: ""
+          name: gib
+        - hostPath:
+            path: /sys/class/net
+            type: Directory
+          name: host-net
+  replicas: 1
+---
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  labels:
+    llm-d.ai/accelerator-variant: gpu
+    llm-d.ai/accelerator-vendor: nvidia
+    llm-d.ai/guide: wide-ep-lws
+    llm-d.ai/inference-serving: "true"
+    llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+    llm-d.ai/role: prefill
+  name: wide-ep-llm-d-prefill
+spec:
+  leaderWorkerTemplate:
+    size: 1
+    workerTemplate:
+      metadata:
+        annotations:
+          networking.gke.io/default-interface: eth0
+          networking.gke.io/interfaces: |
+            [
+              {"interfaceName":"eth0","network":"default"},
+              {"interfaceName":"eth2","network":"rdma-0"},
+              {"interfaceName":"eth3","network":"rdma-1"},
+              {"interfaceName":"eth4","network":"rdma-2"},
+              {"interfaceName":"eth5","network":"rdma-3"}
+            ]
+        labels:
+          llm-d.ai/accelerator-variant: gpu
+          llm-d.ai/accelerator-vendor: nvidia
+          llm-d.ai/guide: wide-ep-lws
+          llm-d.ai/inference-serving: "true"
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+          llm-d.ai/role: prefill
+      spec:
+        affinity:
+          podAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    llm-d.ai/role: prefill
+                matchLabelKeys:
+                - component
+                topologyKey: cloud.google.com/gce-topology-block
+              weight: 2
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    llm-d.ai/role: prefill
+                matchLabelKeys:
+                - component
+                topologyKey: cloud.google.com/gce-topology-subblock
+              weight: 1
+        containers:
+        - args:
+          - |-
+            # Clear /dev/shm on start to prevent running out of space when crashes occur
+            # https://github.com/llm-d/llm-d/issues/352
+            find /dev/shm -type f -delete
+
+            export LD_LIBRARY_PATH=/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/opt/nvshmem-v3.4.5-0/lib:/opt/nvshmem-v3.4.5-0/lib64:/opt/ucx/lib:/opt/ucx/lib64:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH}
+            export LIBRARY_PATH=/usr/local/nvidia/lib64:$LIBRARY_PATH
+
+            #################
+            # RUN vLLM prefill workers
+            #################
+            START_RANK=$(( ${LWS_WORKER_INDEX:-0} * DP_SIZE_LOCAL ))
+
+            # Common vLLM flag arguments shared across all prefill ranks
+            COMMON_VLLM_ARGS=(
+              --max-model-len 2048
+              --disable-uvicorn-access-log
+              --tensor-parallel-size=1
+              --data-parallel-size $((LWS_GROUP_SIZE * DP_SIZE_LOCAL))
+              --data-parallel-address="${LWS_LEADER_ADDRESS}"
+              --data-parallel-rpc-port=5555
+              --data-parallel-external-lb
+              --enable-expert-parallel
+              --kv_transfer_config '{"kv_connector":"NixlConnector","kv_role":"kv_both","kv_load_failure_policy":"fail"}'
+              --all2all-backend "deepep_high_throughput"
+            )
+
+            CUDA_VISIBLE_DEVICES="0" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8000 --data-parallel-rank=$((START_RANK + 0)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="1" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8001 --data-parallel-rank=$((START_RANK + 1)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="2" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8002 --data-parallel-rank=$((START_RANK + 2)) "${COMMON_VLLM_ARGS[@]}" &
+            CUDA_VISIBLE_DEVICES="3" vllm serve nvidia/DeepSeek-R1-0528-NVFP4-v2 --host=0.0.0.0 --port=8003 --data-parallel-rank=$((START_RANK + 3)) "${COMMON_VLLM_ARGS[@]}" &
+            wait
+          - vllm-parallel-launcher
+          command:
+          - /bin/bash
+          - -c
+          env:
+          - name: DP_SIZE_LOCAL
+            value: "4"
+          - name: TP_SIZE
+            value: "1"
+          - name: TRITON_LIBCUDA_PATH
+            value: /usr/lib64
+          - name: VLLM_SKIP_P2P_CHECK
+            value: "1"
+          - name: VLLM_USE_DEEP_GEMM
+            value: "1"
+          - name: NVSHMEM_CUMEM_HANDLE_TYPE
+            value: FABRIC
+          - name: VLLM_FLASHINFER_MOE_BACKEND
+            value: masked_gemm
+          - name: NVIDIA_GDRCOPY
+            value: enabled
+          - name: NVSHMEM_REMOTE_TRANSPORT
+            value: ibgda
+          - name: NVSHMEM_IB_ENABLE_IBGDA
+            value: "true"
+          - name: NVSHMEM_BOOTSTRAP_UID_SOCK_IFNAME
+            value: eth0
+          - name: GLOO_SOCKET_IFNAME
+            value: eth0
+          - name: NCCL_SOCKET_IFNAME
+            value: eth0
+          - name: VLLM_LOGGING_LEVEL
+            value: DEBUG
+          - name: NVSHMEM_DISABLE_CUDA_VMM
+            value: "0"
+          - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CUDA_CACHE_PATH
+            value: /var/cache/vllm/cuda
+          - name: CCACHE_DIR
+            value: /var/cache/vllm/ccache
+          - name: VLLM_CACHE_ROOT
+            value: /var/cache/vllm/vllm
+          - name: FLASHINFER_WORKSPACE_BASE
+            value: /var/cache/vllm/flashinfer
+          - name: FLASHINFER_CACHE_DIR
+            value: /var/cache/vllm/flashinfer_cache_extdp
+          - name: HF_HUB_CACHE
+            value: /var/cache/huggingface
+          - name: DEEP_EP_DEVICE_TO_HCA_MAPPING
+            value: 0:mlx5_0:1,1:mlx5_1:1,2:mlx5_2:1,3:mlx5_3:1
+          - name: BASH_ENV
+            value: /usr/local/gib/scripts/set_nccl_env.sh
+          - name: NVSHMEM_DISABLE_GDRCOPY
+            value: "1"
+          image: quay.io/tms/llm-d-cuda-dev:ef2c4f7
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: rank0
+            periodSeconds: 30
+            timeoutSeconds: 5
+          name: vllm
+          ports:
+          - containerPort: 8000
+            name: rank0
+            protocol: TCP
+          - containerPort: 8001
+            name: rank1
+            protocol: TCP
+          - containerPort: 8002
+            name: rank2
+            protocol: TCP
+          - containerPort: 8003
+            name: rank3
+            protocol: TCP
+          - containerPort: 8004
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /v1/models
+              port: rank0
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            claims:
+            - name: compute-domain-channel
+            limits:
+              ephemeral-storage: 128Gi
+              memory: 512Gi
+              nvidia.com/gpu: "4"
+            requests:
+              cpu: 32
+              ephemeral-storage: 128Gi
+              memory: 512Gi
+              nvidia.com/gpu: "4"
+          securityContext:
+            capabilities:
+              add:
+              - IPC_LOCK
+              - SYS_RAWIO
+            privileged: true
+            runAsGroup: 0
+            runAsUser: 0
+          startupProbe:
+            failureThreshold: 2700
+            httpGet:
+              path: /health
+              port: rank0
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 5
+          volumeMounts:
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /var/cache/huggingface
+            name: hf-cache
+          - mountPath: /var/cache/vllm
+            name: jit-cache
+          - mountPath: /usr/local/gib
+            name: gib
+          - mountPath: /sys/class/net
+            name: host-net
+            readOnly: true
+        hostIPC: true
+        nodeSelector:
+          cloud.google.com/gke-nodepool: a4x-highgpu-4g-a4x-pool-4
+        resourceClaims:
+        - name: compute-domain-channel
+          resourceClaimTemplateName: a4x-compute-domain-channel
+        serviceAccountName: a4x-baker-wfi
+        tolerations:
+        - operator: Exists
+        volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+          name: dshm
+        - hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/shared_disk/vllm-hf-cache/
+            type: DirectoryOrCreate
+          name: hf-cache
+        - hostPath:
+            path: /mnt/stateful_partition/kube-ephemeral-ssd/shared_disk/vllm-jit-cache/
+            type: DirectoryOrCreate
+          name: jit-cache
+        - hostPath:
+            path: /home/kubernetes/bin/gib
+            type: ""
+          name: gib
+        - hostPath:
+            path: /sys/class/net
+            type: Directory
+          name: host-net
+  replicas: 2
+---
+apiVersion: resource.nvidia.com/v1beta1
+kind: ComputeDomain
+metadata:
+  name: a4x-compute-domain
+spec:
+  channel:
+    resourceClaimTemplate:
+      name: a4x-compute-domain-channel
+  numNodes: 3

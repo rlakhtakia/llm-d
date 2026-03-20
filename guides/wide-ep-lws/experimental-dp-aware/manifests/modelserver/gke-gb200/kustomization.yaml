@@ -1,0 +1,212 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../gke
+  - rx.yaml
+patches:
+  - target:
+      kind: LeaderWorkerSet
+      name: wide-ep-llm-d-decode
+    patch: |-
+      apiVersion: leaderworkerset.x-k8s.io/v1
+      kind: LeaderWorkerSet
+      metadata:
+        name: wide-ep-llm-d-decode
+        labels:
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+      spec:
+        leaderWorkerTemplate:
+          workerTemplate:
+            metadata:
+              labels:
+                llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+              annotations:
+                networking.gke.io/interfaces: |
+                  [
+                    {"interfaceName":"eth0","network":"default"},
+                    {"interfaceName":"eth2","network":"rdma-0"},
+                    {"interfaceName":"eth3","network":"rdma-1"},
+                    {"interfaceName":"eth4","network":"rdma-2"},
+                    {"interfaceName":"eth5","network":"rdma-3"}
+                  ]
+            spec:
+              volumes:
+                - name: dshm
+                  emptyDir:
+                    medium: Memory
+                    sizeLimit: 64Gi
+              initContainers:
+                - name: routing-proxy
+                  ports:
+                    - $patch: replace
+                    - containerPort: 8000
+                      name: rank0
+                      protocol: TCP
+                    - containerPort: 8001
+                      name: rank1
+                      protocol: TCP
+                    - containerPort: 8002
+                      name: rank2
+                      protocol: TCP
+                    - containerPort: 8003
+                      name: rank3
+                      protocol: TCP
+              containers:
+                - name: vllm
+                  ports:
+                    - $patch: replace
+                    - containerPort: 8200
+                      name: rank0
+                      protocol: TCP
+                    - containerPort: 8201
+                      name: rank1
+                      protocol: TCP
+                    - containerPort: 8202
+                      name: rank2
+                      protocol: TCP
+                    - containerPort: 8203
+                      name: rank3
+                      protocol: TCP
+                    - containerPort: 8208
+                      name: supervisor
+                      protocol: TCP
+                  env:
+                    - name: DP_SIZE_LOCAL
+                      value: "4"
+                    - name: VLLM_MODEL
+                      value: "nvidia/DeepSeek-R1-0528-NVFP4-v2"
+                    - name: KV_CACHE_MEMORY_BYTES
+                      value: "63000000000"
+                    - name: BASH_ENV
+                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
+                    - name: DEEP_EP_DEVICE_TO_HCA_MAPPING
+                      value: "0:mlx5_0:1,1:mlx5_1:1,2:mlx5_2:1,3:mlx5_3:1"
+                    - name: VLLM_DEEPEP_LOW_LATENCY_USE_MNNVL
+                      value: "1"
+                    - name: VLLM_DEEPEPLL_NVFP4_DISPATCH
+                      value: "1"
+                    - name: VLLM_FLASHINFER_MOE_BACKEND
+                      value: "masked_gemm"
+                    - name: NVSHMEM_CUMEM_HANDLE_TYPE
+                      value: "FABRIC"
+  - target:
+      kind: LeaderWorkerSet
+      name: wide-ep-llm-d-prefill
+    patch: |-
+      apiVersion: leaderworkerset.x-k8s.io/v1
+      kind: LeaderWorkerSet
+      metadata:
+        name: wide-ep-llm-d-prefill
+        labels:
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+      spec:
+        leaderWorkerTemplate:
+          workerTemplate:
+            metadata:
+              labels:
+                llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+              annotations:
+                networking.gke.io/interfaces: |
+                  [
+                    {"interfaceName":"eth0","network":"default"},
+                    {"interfaceName":"eth2","network":"rdma-0"},
+                    {"interfaceName":"eth3","network":"rdma-1"},
+                    {"interfaceName":"eth4","network":"rdma-2"},
+                    {"interfaceName":"eth5","network":"rdma-3"}
+                  ]
+            spec:
+              volumes:
+                - name: dshm
+                  emptyDir:
+                    medium: Memory
+                    sizeLimit: 64Gi
+              containers:
+                - name: vllm
+                  ports:
+                    - $patch: replace
+                    - containerPort: 8000
+                      name: rank0
+                      protocol: TCP
+                    - containerPort: 8001
+                      name: rank1
+                      protocol: TCP
+                    - containerPort: 8002
+                      name: rank2
+                      protocol: TCP
+                    - containerPort: 8003
+                      name: rank3
+                      protocol: TCP
+                    - containerPort: 8008
+                      name: supervisor
+                      protocol: TCP
+                  env:
+                    - name: DP_SIZE_LOCAL
+                      value: "4"
+                    - name: VLLM_MODEL
+                      value: "nvidia/DeepSeek-R1-0528-NVFP4-v2"
+                    - name: KV_CACHE_MEMORY_BYTES
+                      value: "45000000000"
+                    - name: BASH_ENV
+                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
+                    - name: DEEP_EP_DEVICE_TO_HCA_MAPPING
+                      value: "0:mlx5_0:1,1:mlx5_1:1,2:mlx5_2:1,3:mlx5_3:1"
+                    - name: VLLM_FLASHINFER_MOE_BACKEND
+                      value: "masked_gemm"
+                    - name: NVSHMEM_CUMEM_HANDLE_TYPE
+                      value: "FABRIC"
+  - target:
+      kind: PodMonitor
+      name: ms-wide-ep-llm-d-modelservice-decode-podmonitor
+    patch: |-
+      apiVersion: monitoring.coreos.com/v1
+      kind: PodMonitor
+      metadata:
+        name: ms-wide-ep-llm-d-modelservice-decode-podmonitor
+        labels:
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+      spec:
+        selector:
+          matchLabels:
+            llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+        podMetricsEndpoints:
+          - $patch: replace
+          - port: "rank0"
+            path: /metrics
+            interval: 5s
+          - port: "rank1"
+            path: /metrics
+            interval: 5s
+          - port: "rank2"
+            path: /metrics
+            interval: 5s
+          - port: "rank3"
+            path: /metrics
+            interval: 5s
+  - target:
+      kind: PodMonitor
+      name: ms-wide-ep-llm-d-modelservice-prefill-podmonitor
+    patch: |-
+      apiVersion: monitoring.coreos.com/v1
+      kind: PodMonitor
+      metadata:
+        name: ms-wide-ep-llm-d-modelservice-prefill-podmonitor
+        labels:
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+      spec:
+        selector:
+          matchLabels:
+            llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
+        podMetricsEndpoints:
+          - $patch: replace
+          - port: "rank0"
+            path: /metrics
+            interval: 5s
+          - port: "rank1"
+            path: /metrics
+            interval: 5s
+          - port: "rank2"
+            path: /metrics
+            interval: 5s
+          - port: "rank3"
+            path: /metrics
+            interval: 5s

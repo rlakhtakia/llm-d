@@ -156,7 +156,7 @@ patches:
         path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
         value:
           name: NVSHMEM_DISABLED_GDRCOPY
-          value: "true"
+          value: "1"
       # We add the volume for different providers since the hostPath can be different.
       - op: replace
         path: /spec/leaderWorkerTemplate/workerTemplate/spec/volumes/1
