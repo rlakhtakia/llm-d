@@ -1,0 +1,9 @@
+apiVersion: resource.nvidia.com/v1beta1
+kind: ComputeDomain
+metadata:
+  name: a4x-compute-domain
+spec:
+  numNodes: 3  # 1 (Prefill) + 2 (Decode)
+  channel:
+    resourceClaimTemplate:
+      name: a4x-compute-domain-channel

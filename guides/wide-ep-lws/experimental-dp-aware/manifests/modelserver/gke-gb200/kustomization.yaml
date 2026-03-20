@@ -23,14 +23,12 @@ patches:
               containers:
                 - name: vllm
                   env:
+                    - name: DP_SIZE_LOCAL
+                      value: "4"
+                    - name: VLLM_MODEL
+                      value: "nvidia/DeepSeek-R1-0528-NVFP4-v2"
                     - name: KV_CACHE_MEMORY_BYTES
                       value: "63000000000"
-                    - name: NCCL_NET
-                      value: "Socket"
-                    - name: NCCL_TUNER_CONFIG_PATH
-                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
-                    - name: NCCL_DEBUG
-                      value: "INFO"
                     - name: BASH_ENV
                       value: "/usr/local/gib/scripts/set_nccl_env.sh"
   - target:
@@ -53,13 +51,11 @@ patches:
               containers:
                 - name: vllm
                   env:
+                    - name: DP_SIZE_LOCAL
+                      value: "4"
+                    - name: VLLM_MODEL
+                      value: "nvidia/DeepSeek-R1-0528-NVFP4-v2"
                     - name: KV_CACHE_MEMORY_BYTES
                       value: "45000000000"
-                    - name: NCCL_NET
-                      value: "Socket"
-                    - name: NCCL_TUNER_CONFIG_PATH
-                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
-                    - name: NCCL_DEBUG
-                      value: "INFO"
                     - name: BASH_ENV
                       value: "/usr/local/gib/scripts/set_nccl_env.sh"

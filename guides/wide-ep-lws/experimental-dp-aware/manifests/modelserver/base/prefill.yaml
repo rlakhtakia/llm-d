@@ -7,7 +7,7 @@ metadata:
     llm-d.ai/guide: "wide-ep-lws"
     llm-d.ai/accelerator-variant: "gpu"
     llm-d.ai/accelerator-vendor: "nvidia"
-    llm-d.ai/model: DeepSeek-R1-0528
+    llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
     llm-d.ai/role: prefill
 spec:
   replicas: 2
@@ -20,10 +20,12 @@ spec:
           llm-d.ai/guide: "wide-ep-lws"
           llm-d.ai/accelerator-variant: "gpu"
           llm-d.ai/accelerator-vendor: "nvidia"
-          llm-d.ai/model: DeepSeek-R1-0528
+          llm-d.ai/model: DeepSeek-R1-0528-NVFP4-v2
           llm-d.ai/role: prefill
       spec:
-        serviceAccountName: deepseek-r1
+        serviceAccountName: a4x-baker-wfi
+        nodeSelector:
+          cloud.google.com/gke-nodepool: a4x-highgpu-4g-a4x-pool-4
         volumes:
           - name: dshm
             emptyDir:
@@ -53,49 +55,50 @@ spec:
                 # https://github.com/llm-d/llm-d/issues/352
                 find /dev/shm -type f -delete
 
+                export LD_LIBRARY_PATH=/usr/local/gib/lib64:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:/opt/nvshmem-v3.4.5-0/lib:/opt/nvshmem-v3.4.5-0/lib64:/opt/ucx/lib:/opt/ucx/lib64:/usr/lib/x86_64-linux-gnu:/usr/lib/aarch64-linux-gnu:${LD_LIBRARY_PATH}
+                export LIBRARY_PATH=/usr/local/nvidia/lib64:$LIBRARY_PATH
+
                 #################
                 # RUN vLLM prefill workers
                 #################
                 START_RANK=$(( ${LWS_WORKER_INDEX:-0} * DP_SIZE_LOCAL ))
 
+                [ -n "${KV_CACHE_MEMORY_BYTES}" ] && EXTRA_VLLM_ARGS=(--kv-cache-memory-bytes="${KV_CACHE_MEMORY_BYTES}") || EXTRA_VLLM_ARGS=()
+
+                # For GKE A4 (B200) Blackwell instances, single-pod prefill groups (LWS_GROUP_SIZE=1)
+                # and decode leader pods must rendezvous over local loopback (127.0.0.1) to avoid socket
+                # binding collisions on secondary RDMA network interfaces (eth2-eth9) during startup.
+                if [ "${LWS_GROUP_SIZE:-1}" -eq 1 ] || [ "${LWS_WORKER_INDEX:-0}" -eq 0 ]; then
+                    # Prefill pods AND the Decode Leader pod automatically use safe local loopback
+                    DP_ADDR="127.0.0.1"
+                else
+                    # Decode Worker pods dynamically look up the leader's network IP
+                    DP_ADDR="${LWS_LEADER_ADDRESS}"
+                fi
+
                 # Common vLLM flag arguments shared across all prefill ranks
                 COMMON_VLLM_ARGS=(
+                  --max-model-len 2048
                   --disable-uvicorn-access-log
                   --tensor-parallel-size=1
                   --data-parallel-size $((LWS_GROUP_SIZE * DP_SIZE_LOCAL))
-                  --data-parallel-address="${LWS_LEADER_ADDRESS}"
+                  --data-parallel-address="${DP_ADDR}"
                   --data-parallel-rpc-port=5555
+                  --data-parallel-external-lb
                   --enable-expert-parallel
                   --kv_transfer_config '{"kv_connector":"NixlConnector","kv_role":"kv_both","kv_load_failure_policy":"fail"}'
-                  --all2all-backend deepep_high_throughput
-                  --max-model-len 65536
-                  # To enable tracing, add:
-                  # --otlp-traces-endpoint http://otel-collector:4317
-                  # --collect-detailed-traces all
+                  --all2all-backend "deepep_high_throughput"
+                  "${EXTRA_VLLM_ARGS[@]}"
                 )
 
-                CUDA_VISIBLE_DEVICES="0" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8000 --data-parallel-rank=$((START_RANK + 0)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="1" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8001 --data-parallel-rank=$((START_RANK + 1)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="2" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8002 --data-parallel-rank=$((START_RANK + 2)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="3" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8003 --data-parallel-rank=$((START_RANK + 3)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="4" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8004 --data-parallel-rank=$((START_RANK + 4)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="5" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8005 --data-parallel-rank=$((START_RANK + 5)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="6" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8006 --data-parallel-rank=$((START_RANK + 6)) "${COMMON_VLLM_ARGS[@]}" &
-                CUDA_VISIBLE_DEVICES="7" vllm serve deepseek-ai/DeepSeek-R1-0528 --host=0.0.0.0 --port=8007 --data-parallel-rank=$((START_RANK + 7)) "${COMMON_VLLM_ARGS[@]}" &
+                for i in $(seq 0 $((DP_SIZE_LOCAL - 1))); do
+                    CUDA_VISIBLE_DEVICES="$i" vllm serve "${VLLM_MODEL:-deepseek-ai/DeepSeek-R1-0528}" --host=0.0.0.0 --port=$((8000 + i)) --data-parallel-rank=$((START_RANK + i)) "${COMMON_VLLM_ARGS[@]}" &
+                done
                 wait
               - vllm-parallel-launcher
             env:
-              # To enable tracing, uncomment:
-              # - name: OTEL_SERVICE_NAME
-              #   value: "vllm-prefill"
-              # - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              #   value: "http://otel-collector:4317"
-              # - name: OTEL_TRACES_SAMPLER
-              #   value: "parentbased_traceidratio"
-              # - name: OTEL_TRACES_SAMPLER_ARG
-              #   value: "0.1"
               - name: DP_SIZE_LOCAL
-                value: "8"
+                value: "4"
               - name: TP_SIZE
                 value: "1"
               - name: TRITON_LIBCUDA_PATH
@@ -104,6 +107,10 @@ spec:
                 value: "1"
               - name: VLLM_USE_DEEP_GEMM
                 value: "1"
+              - name: NVSHMEM_CUMEM_HANDLE_TYPE
+                value: "FABRIC"
+              - name: VLLM_FLASHINFER_MOE_BACKEND
+                value: "masked_gemm"
               - name: NVIDIA_GDRCOPY
                 value: enabled
               - name: NVSHMEM_REMOTE_TRANSPORT
@@ -117,7 +124,7 @@ spec:
               - name: NCCL_SOCKET_IFNAME
                 value: eth0
               - name: VLLM_LOGGING_LEVEL
-                value: INFO
+                value: DEBUG
               - name: NVSHMEM_DISABLE_CUDA_VMM
                 value: "0"
               - name: VLLM_NIXL_SIDE_CHANNEL_HOST
@@ -135,6 +142,8 @@ spec:
                 value: /var/cache/vllm/vllm
               - name: FLASHINFER_WORKSPACE_BASE
                 value: /var/cache/vllm/flashinfer
+              - name: FLASHINFER_CACHE_DIR
+                value: /var/cache/vllm/flashinfer_cache_extdp
               # HuggingFace is likely to be quite a bit larger, give it its own cache
               - name: HF_HUB_CACHE
                 value: /var/cache/huggingface
@@ -152,17 +161,6 @@ spec:
                 name: rank3
                 protocol: TCP
               - containerPort: 8004
-                name: rank4
-                protocol: TCP
-              - containerPort: 8005
-                name: rank5
-                protocol: TCP
-              - containerPort: 8006
-                name: rank6
-                protocol: TCP
-              - containerPort: 8007
-                name: rank7
-                protocol: TCP
             startupProbe:
               httpGet:
                 path: /health
@@ -187,14 +185,14 @@ spec:
               failureThreshold: 3
             resources:
               limits:
-                ephemeral-storage: 1Ti
+                ephemeral-storage: 128Gi
                 memory: 512Gi
-                nvidia.com/gpu: "8"
+                nvidia.com/gpu: "4"
               requests:
                 cpu: 32
-                ephemeral-storage: 1Ti
+                ephemeral-storage: 128Gi
                 memory: 512Gi
-                nvidia.com/gpu: "8"
+                nvidia.com/gpu: "4"
             volumeMounts:
               - name: dshm
                 mountPath: /dev/shm
