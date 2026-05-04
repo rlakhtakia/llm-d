@@ -73,13 +73,13 @@ prefill:
       enabled: true
 ```
 
-Upon installation, view prefill and/or decode podmonitors with:
+Upon installation, view prefill and/or decode endpoint monitors with:
 
 ```bash
 kubectl get podmonitors -n my-llm-d-namespace
 ```
 
-The vLLM metrics from prefill and decode pods will be visible from the Prometheus and/or Grafana user interface.
+The vLLM metrics from prefill and decode endpoints will be visible from the Prometheus and/or Grafana user interface.
 
 ### EPP (Endpoint Picker) Metrics
 

@@ -134,14 +134,14 @@ When the latency predictor is enabled, the EPP exposes Prometheus metrics for ac
 
 | Metric | Description |
 |--------|-------------|
-| `inference_objective_request_ttft_seconds` | Actual TTFT distribution, per model / target model. |
-| `inference_objective_request_predicted_ttft_seconds` | Predicted TTFT distribution, per model / target model. |
-| `inference_objective_request_ttft_prediction_duration_seconds` | Time spent generating TTFT predictions. |
-| `inference_objective_request_tpot_seconds` | Actual TPOT distribution. |
-| `inference_objective_request_predicted_tpot_seconds` | Predicted TPOT distribution. |
-| `inference_objective_request_tpot_prediction_duration_seconds` | Time spent generating TPOT predictions. |
-| `inference_objective_request_ttft_slo_violation_total` | Counter of TTFT SLO violations. |
-| `inference_objective_request_tpot_slo_violation_total` | Counter of TPOT SLO violations. |
+| `llmd_inference_scheduler_request_ttft_seconds` | Actual TTFT distribution, per model / target model. |
+| `llmd_inference_scheduler_request_predicted_ttft_seconds` | Predicted TTFT distribution, per model / target model. |
+| `llmd_inference_scheduler_request_ttft_prediction_duration_seconds` | Time spent generating TTFT predictions. |
+| `llmd_inference_scheduler_request_tpot_seconds` | Actual TPOT distribution. |
+| `llmd_inference_scheduler_request_predicted_tpot_seconds` | Predicted TPOT distribution. |
+| `llmd_inference_scheduler_request_tpot_prediction_duration_seconds` | Time spent generating TPOT predictions. |
+| `llmd_inference_scheduler_request_ttft_slo_violation_total` | Counter of TTFT SLO violations. |
+| `llmd_inference_scheduler_request_tpot_slo_violation_total` | Counter of TPOT SLO violations. |
 
 All latency and prediction-duration series are Prometheus **histograms**, so dashboards should query them via `histogram_quantile` (and the counters via `rate`) rather than reading instantaneous values. Pairing actuals with predictions lets operators validate predictor accuracy in-situ; SLO violation counters are the primary signal for alerting on SLO breaches.
 

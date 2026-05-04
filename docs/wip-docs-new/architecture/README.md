@@ -37,7 +37,7 @@ See [Disaggregation](advanced/disaggregation/README.md) for complete details on 
 
 By default, the llm-d EPP leverages scorers that are used to selecting the optimal pod, leveraging:
 - The Model Server's exported Prometheus metrics
-- In-memory data structures (most notably, a prefix-cache tree that approximates the KV cache state of each pod)
+- In-memory data structures (most notably, a prefix-cache tree that approximates the KV cache state of each endpoint)
 
 Should your use case require it, the EPP can optionally query 'consultant' components to execute arbitrary scoring logic and enable advanced patterns. For more details on example "Consultants", see:
 - [Latency Predictor](advanced/latency-predictor.md), which trains an XGBoost model online (using measured latency of previous requests) for scheduling decisions

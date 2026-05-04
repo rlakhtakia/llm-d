@@ -78,7 +78,7 @@ vllm serve <model> \
   --kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_both"}'
 ```
 
-The `kv_role` is `kv_both` for both prefill and decode pods — each pod can both send and receive KV Cache.
+The `kv_role` is `kv_both` for both prefill and decode pods — each endpoint can both send and receive KV Cache.
 
 For XPU and HPU devices where KV transfer happens via CPU memory, add:
 
@@ -198,7 +198,7 @@ After deploying model servers, verify two things:
 
 ### 1. GPU Topology
 
-Confirm GPUs within each pod are optimally connected:
+Confirm GPUs within each endpoint are optimally connected:
 
 ```bash
 # NVIDIA

@@ -93,34 +93,34 @@ The Request Handling subsystem exposes metrics tracking request volume, success,
 
 | Metric | Type | Description | Labels |
 |--------|------|-------------|--------|
-| `inference_objective_request_total` | Counter | Total request count per model | `model_name`, `target_model_name`, `priority` |
-| `inference_objective_request_error_total` | Counter | Total error count per model | `model_name`, `target_model_name`, `error_code` |
-| `inference_objective_running_requests` | Gauge | Currently active requests per model | `model_name` |
+| `llmd_inference_scheduler_request_total` | Counter | Total request count per model | `model_name`, `target_model_name`, `priority` |
+| `llmd_inference_scheduler_request_error_total` | Counter | Total error count per model | `model_name`, `target_model_name`, `error_code` |
+| `llmd_inference_scheduler_running_requests` | Gauge | Currently active requests per model | `model_name` |
 
 #### Latency & SLOs
 
 | Metric | Type | Description | Labels |
 |--------|------|-------------|--------|
-| `inference_objective_request_duration_seconds` | Distribution | End-to-end response latency | `model_name`, `target_model_name` |
-| `inference_objective_normalized_time_per_output_token_seconds` | Distribution | Normalized Time Per Output Token (NTPOT) | `model_name`, `target_model_name` |
-| `inference_objective_request_ttft_seconds` | Distribution | Time to first token (TTFT) | `model_name`, `target_model_name` |
-| `inference_objective_request_predicted_ttft_seconds` | Distribution | Predicted TTFT | `model_name`, `target_model_name` |
-| `inference_objective_request_ttft_prediction_duration_seconds` | Distribution | Time spent predicting TTFT | `model_name`, `target_model_name` |
-| `inference_objective_request_predicted_tpot_seconds` | Distribution | Predicted TPOT | `model_name`, `target_model_name` |
-| `inference_objective_request_tpot_prediction_duration_seconds` | Distribution | Time spent predicting TPOT | `model_name`, `target_model_name` |
-| `inference_objective_request_slo_violation_total` | Counter | Total count of requests violating SLO | `model_name`, `target_model_name`, `type` |
+| `llmd_inference_scheduler_request_duration_seconds` | Distribution | End-to-end response latency | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_normalized_time_per_output_token_seconds` | Distribution | Normalized Time Per Output Token (NTPOT) | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_ttft_seconds` | Distribution | Time to first token (TTFT) | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_predicted_ttft_seconds` | Distribution | Predicted TTFT | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_ttft_prediction_duration_seconds` | Distribution | Time spent predicting TTFT | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_predicted_tpot_seconds` | Distribution | Predicted TPOT | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_tpot_prediction_duration_seconds` | Distribution | Time spent predicting TPOT | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_slo_violation_total` | Counter | Total count of requests violating SLO | `model_name`, `target_model_name`, `type` |
 
 | Metric | Type | Description | Labels |
 |--------|------|-------------|--------|
-| `inference_objective_request_sizes` | Distribution | Request size in bytes | `model_name`, `target_model_name` |
-| `inference_objective_response_sizes` | Distribution | Response size in bytes | `model_name`, `target_model_name` |
-| `inference_objective_input_tokens` | Distribution | Input token count per request | `model_name`, `target_model_name` |
-| `inference_objective_output_tokens` | Distribution | Output token count per request | `model_name`, `target_model_name` |
-| `inference_objective_prompt_cached_tokens` | Distribution | Number of prompt cached tokens | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_request_sizes` | Distribution | Request size in bytes | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_response_sizes` | Distribution | Response size in bytes | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_input_tokens` | Distribution | Input token count per request | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_output_tokens` | Distribution | Output token count per request | `model_name`, `target_model_name` |
+| `llmd_inference_scheduler_prompt_cached_tokens` | Distribution | Number of prompt cached tokens | `model_name`, `target_model_name` |
 
 > **Note:** Response-level metrics (response sizes, output tokens, NTPOT) require Envoy body mode to be set to `Buffered` or `Streamed`. For vLLM streaming responses with usage data, include `stream_options: {"include_usage": true}` in the request.
 
 | Metric | Type | Description | Labels |
 |--------|------|-------------|--------|
-| `inference_objective_inference_request_metric` | Gauge | Consolidated gauge for request metrics | `model_name`, `target_model_name`, `type` |
-| `inference_extension_model_rewrite_decisions_total` | Counter | Total number of model rewrite decisions | `model_rewrite_name`, `model_name`, `target_model` |
+| `llmd_inference_scheduler_inference_request_metric` | Gauge | Consolidated gauge for request metrics | `model_name`, `target_model_name`, `type` |
+| `llmd_inference_scheduler_model_rewrite_decisions_total` | Counter | Total number of model rewrite decisions | `model_rewrite_name`, `model_name`, `target_model` |

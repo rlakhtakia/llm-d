@@ -174,11 +174,11 @@ EPP plugins run within the gateway-api-inference-extension process but are provi
   - Configures OTLP exporter, W3C propagation, and parent-based sampling
 
 - `llm_d.epp.scorer.prefix_cache`: Precise prefix cache scoring (added in `pkg/plugins/scorer/precise_prefix_cache.go`)
-  - Attributes: candidate pods, model, request ID, scores computed, score distribution (max, avg), pods scored
+  - Attributes: candidate endpoints, model, request ID, scores computed, score distribution (max, avg), pods scored
   - Parent span: gateway.request
 
 - `llm_d.epp.prerequest.pd_disaggregation`: P/D disaggregation header setup (added in `pkg/plugins/pre-request/pd_prerequest.go`)
-  - Attributes: model, request ID, disaggregation used flag, prefill pod address/port, reason (if disabled)
+  - Attributes: model, request ID, disaggregation used flag, prefill endpoint address/port, reason (if disabled)
   - Parent span: gateway.request
 
 - `llm_d.epp.pd.profile_handler.pick`: P/D profile selection decision point (added in `pkg/plugins/profile/pd_profile_handler.go`)
@@ -190,16 +190,16 @@ EPP plugins run within the gateway-api-inference-extension process but are provi
 
 **Proposed Spans:**
 - `llm_d.kv_cache.get_scores`: Main scoring operation (INTERNAL span)
-  - Attributes: model name, pod count, block keys count, block hit ratio, blocks found
+  - Attributes: model name, endpoint count, block keys count, block hit ratio, blocks found
 
 - `llm_d.kv_cache.storage.lookup`: Storage backend lookup (INTERNAL span)
-  - Attributes: block count, pod filter count, cache hit flag, blocks found
+  - Attributes: block count, endpoint filter count, cache hit flag, blocks found
 
 - `llm_d.kv_cache.scorer.compute`: Scoring algorithm execution (INTERNAL span)
   - Attributes: scoring algorithm/strategy, key count, score distribution (max, avg), pods scored
 
 **Implementation Notes:**
-- All three spans form a parent-child relationship during pod scoring
+- All three spans form a parent-child relationship during endpoint scoring
 - Spans are only created when precise-prefix-cache-scorer plugin is enabled and invoked
 - Block hit ratio calculation: `blocks_found / block_keys_count` measures cache effectiveness at the block level
 
@@ -274,7 +274,7 @@ gateway.request (2150ms) [gateway-api-inference-extension]
 │   └── Attributes: decision="prefill_decode", input_tokens=512
 │
 ├── llm_d.epp.prerequest.pd_disaggregation (2ms)
-│   └── Sets prefill pod headers for P/D proxy
+│   └── Sets prefill endpoint headers for P/D proxy
 │
 └── llm_d.pd_proxy.request (2105ms) [llm-d-pd-proxy]
     ├── Attributes: connector="nixlv2", request_path="/v1/chat/completions"

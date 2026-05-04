@@ -180,7 +180,7 @@ Capacity:
 ...
 ```
 
-> **Note:** The `nvidia.com/gpu` resource represents the number of physical GPUs available on the node, while `rdma/ib` indicates the maximum number of pods that can concurrently utilize RDMA over InfiniBand. As a best practice, each pod should request exactly one `rdma/ib` resource, independent of the number of GPUs it consumes.
+> **Note:** The `nvidia.com/gpu` resource represents the number of physical GPUs available on the node, while `rdma/ib` indicates the maximum number of pods that can concurrently utilize RDMA over InfiniBand. As a best practice, each endpoint should request exactly one `rdma/ib` resource, independent of the number of GPUs it consumes.
 
 ## Point of Contact
 

@@ -365,7 +365,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "**Per-Pod Cache Hit Rates** - Shows cache performance for each decode pod. Useful for troubleshooting cache-aware routing.",
+      "description": "**Per-Endpoint Cache Hit Rates** - Shows cache performance for each decode pod. Useful for troubleshooting cache-aware routing.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -430,11 +430,11 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "expr": "vllm:prefix_cache_hits_total{model_name=~\"$model\", namespace=~\"$namespace\"} / vllm:prefix_cache_queries_total{model_name=~\"$model\", namespace=~\"$namespace\"}",
-          "legendFormat": "Pod {{pod}}",
+          "legendFormat": "Endpoint {{endpoint}}",
           "refId": "A"
         }
       ],
-      "title": "Per-Pod Cache Hit Rates",
+      "title": "Per-Endpoint Cache Hit Rates",
       "type": "bargauge"
     },
     {
@@ -512,7 +512,7 @@
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
-      "description": "**Per-Pod Cache Usage** - Shows cache utilization for each decode pod",
+      "description": "**Per-Endpoint Cache Usage** - Shows cache utilization for each decode pod",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -578,11 +578,11 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "expr": "vllm:kv_cache_usage_perc{namespace=~\"$namespace\"} * 100",
-          "legendFormat": "Pod {{pod}}",
+          "legendFormat": "Endpoint {{endpoint}}",
           "refId": "A"
         }
       ],
-      "title": "Per-Pod KV Cache Usage",
+      "title": "Per-Endpoint KV Cache Usage",
       "type": "bargauge"
     },
     {
@@ -908,7 +908,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "inference_pool_ready_pods{namespace=~\"$namespace\"}",
+          "expr": "llmd_inference_scheduler_ready_endpoints{namespace=~\"$namespace\"}",
           "legendFormat": "{{name}} Ready Pods",
           "refId": "A"
         },
@@ -917,7 +917,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "inference_pool_average_queue_size{namespace=~\"$namespace\"}",
+          "expr": "llmd_inference_scheduler_average_queue_size{namespace=~\"$namespace\"}",
           "legendFormat": "{{name}} Average Queue Size",
           "refId": "B"
         }
@@ -987,7 +987,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "inference_pool_average_kv_cache_utilization{namespace=~\"$namespace\"}",
+          "expr": "llmd_inference_scheduler_average_kv_cache_utilization{namespace=~\"$namespace\"}",
           "legendFormat": "{{name}} Pool KV Cache Utilization",
           "refId": "A"
         }

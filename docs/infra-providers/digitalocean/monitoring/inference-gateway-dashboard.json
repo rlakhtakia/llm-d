@@ -137,7 +137,7 @@
             {
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "sum by(name) (inference_pool_average_kv_cache_utilization)",
+              "expr": "sum by(name) (llmd_inference_scheduler_average_kv_cache_utilization)",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "legendFormat": "__auto",
@@ -233,7 +233,7 @@
             {
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "sum by(name) (inference_pool_average_queue_size)",
+              "expr": "sum by(name) (llmd_inference_scheduler_average_queue_size)",
               "fullMetaSearch": false,
               "includeNullMetadata": true,
               "legendFormat": "__auto",
@@ -331,7 +331,7 @@
               },
               "disableTextWrap": false,
               "editorMode": "builder",
-              "expr": "sum by(name, model_server_pod, pod) (inference_pool_per_pod_queue_size)",
+              "expr": "sum by(name, model_server_endpoint, pod) (llmd_inference_scheduler_per_endpoint_queue_size)",
               "fullMetaSearch": false,
               "includeNullMetadata": false,
               "instant": false,

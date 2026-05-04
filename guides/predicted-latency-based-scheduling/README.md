@@ -183,7 +183,7 @@ Once prerequisites are met, you can validate predicted latency based scheduling:
 
    These logs confirm:
    - The request entered the SLO-aware path.
-   - All candidate pods were evaluated.
+   - All candidate endpoints were evaluated.
    - Scores reflect predicted headroom vs SLOs.
    - The final pod was chosen based on SLO scorer output.
 

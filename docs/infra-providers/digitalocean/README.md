@@ -151,8 +151,8 @@ The DigitalOcean deployment uses smaller, optimized models:
 DigitalOcean deployment automatically optimizes resource allocation for DOKS GPU nodes:
 
 * **Reduced Memory**: Uses 16Gi instead of 64Gi for better node utilization
-* **Optimized CPU**: Uses 4 cores instead of 16 cores per pod
-* **Single GPU**: Uses 1 GPU per pod (optimal for DOKS node sizes)
+* **Optimized CPU**: Uses 4 cores instead of 16 cores per endpoint
+* **Single GPU**: Uses 1 GPU per endpoint (optimal for DOKS node sizes)
 * **No RDMA**: Removes InfiniBand requirements not available on DOKS
 
 ### GPU Node Configuration
@@ -172,7 +172,7 @@ tolerations:
 **optimized baseline on DOKS:**
 
 * 2 decode pods with InferencePool routing
-* Single GPU per pod (optimal for DOKS node sizes)
+* Single GPU per endpoint (optimal for DOKS node sizes)
 * Intelligent request distribution
 
 ## Troubleshooting

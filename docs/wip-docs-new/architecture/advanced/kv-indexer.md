@@ -118,7 +118,7 @@ The Scorer's goal is to find, for each candidate pod, the length of the **longes
 
 KV-cache blocks form a chain where block `i` depends on all blocks `0..i-1`. Due to the causal nature of attention, a server can reuse a cached block only if it holds the unbroken prefix leading up to it.
 
-For example, consider a prompt with block keys `[B0, B1, B2, B3, B4]` and three candidate pods:
+For example, consider a prompt with block keys `[B0, B1, B2, B3, B4]` and three candidate endpoints:
 
 ```
 Block keys:   B0    B1    B2    B3    B4

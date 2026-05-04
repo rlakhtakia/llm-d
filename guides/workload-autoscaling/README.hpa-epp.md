@@ -25,8 +25,8 @@ Follow the [optimized baseline](https://github.com/llm-d/llm-d/blob/main/guides/
 
 | Metric Name | Description | Recommended Usage |
 |---|---|---|
-| `inference_extension_flow_control_queue_size` | The number of requests currently buffered in the gateway waiting for an available backend. | Scale-out signal: High queue size indicates that the existing replicas are saturated. |
-| `inference_objective_running_requests` | The number of concurrent requests being processed by the model pool. | Capacity signal: Useful for tracking total throughput. |
+| `llmd_inference_scheduler_flow_control_queue_size` | The number of requests currently buffered in the gateway waiting for an available backend. | Scale-out signal: High queue size indicates that the existing replicas are saturated. |
+| `llmd_inference_scheduler_running_requests` | The number of concurrent requests being processed by the model pool. | Capacity signal: Useful for tracking total throughput. |
 
 ## Configuration Guide
 
@@ -75,7 +75,7 @@ Create a values file `epp-adapter-values.yaml` with the following rules:
 ```yaml
 rules:
   external:
-    - seriesQuery: 'inference_extension_flow_control_queue_size'
+    - seriesQuery: 'llmd_inference_scheduler_flow_control_queue_size'
       resources:
         overrides:
           namespace:
@@ -83,8 +83,8 @@ rules:
           namespaced: false
       name:
         as: "epp_queue_size"
-      metricsQuery: 'sum(inference_extension_flow_control_queue_size{inference_pool="vllm-llama3-8b-instruct"})'
-    - seriesQuery: 'inference_objective_running_requests'
+      metricsQuery: 'sum(llmd_inference_scheduler_flow_control_queue_size{inference_pool="vllm-llama3-8b-instruct"})'
+    - seriesQuery: 'llmd_inference_scheduler_running_requests'
       resources:
         overrides:
           namespace:
@@ -92,7 +92,7 @@ rules:
           namespaced: false
       name:
         as: "epp_running_requests"
-      metricsQuery: 'sum(inference_objective_running_requests{top_level_controller_name="vllm-llama3-8b-instruct-epp"})'
+      metricsQuery: 'sum(llmd_inference_scheduler_running_requests{top_level_controller_name="vllm-llama3-8b-instruct-epp"})'
 ```
 
 > **Note:** Replace `vllm-llama3-8b-instruct` and `vllm-llama3-8b-instruct-epp` with your
