@@ -76,7 +76,11 @@ This deploys the llm-d Router with an Envoy sidecar, it doesn't set up a Kuberne
 ```bash
 helm install ${GUIDE_NAME} \
     oci://ghcr.io/llm-d/charts/llm-d-router-standalone-dev \
+<<<<<<< HEAD
     -f ${REPO_ROOT}/guides/recipes/router/base.values.yaml \
+=======
+    -f guides/recipes/router/base.values.yaml \
+>>>>>>> 594808c4 (Updated the guides to use the new helm charts released by the llm-d project (#1607))
     -f ${REPO_ROOT}/guides/${GUIDE_NAME}/router/predicted-latency.values.yaml \
     -n ${NAMESPACE} --version ${ROUTER_CHART_VERSION}
 ```

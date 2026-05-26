@@ -1,16 +1,11 @@
-name: Nightly - Precise Prefix Cache E2E (OpenShift)
+name: Nightly - optimized baseline E2E (CKS)
 
-# Nightly regression test for the precise-prefix-cache-routing guide on OpenShift.
-# Deploys the guide via custom_deploy_script (kustomize + standalone chart with
-# UDS tokenizer post-renderer) and validates with e2e-validate.sh against the
-# scheduler EPP service. Mirrors the optimized-baseline CKS/GKE migration in
-# llm-d/llm-d#1268; the OCP helmfile reusable workflow doesn't expose a
-# `gateway_host` input yet, so pre_deploy_script seeds GATEWAY_HOST via
-# GITHUB_ENV.
+# Nightly regression test for the optimized-baseline guide on CoreWeave (CKS).
+# Deploys the guide and validates with e2e-validate.sh.
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # 01:00 UTC daily
+    - cron: '0 6 * * *'  # 06:00 UTC daily (staggered from OCP/GKE nightlies)
   workflow_dispatch:
     inputs:
       skip_cleanup:
@@ -30,30 +25,29 @@ permissions:
   contents: read
 
 concurrency:
-  group: nightly-e2e-precise-prefix-cache
+  group: nightly-e2e-optimized-baseline-cks
   cancel-in-progress: true
 
 jobs:
   nightly:
     if: github.repository == 'llm-d/llm-d'
-    uses: llm-d/llm-d-infra/.github/workflows/reusable-nightly-e2e-openshift.yaml@main
+    uses: llm-d/llm-d-infra/.github/workflows/reusable-nightly-e2e-cks.yaml@main
     with:
-      guide_name: precise-prefix-cache-routing
-      namespace: llm-d-nightly-prefix-cache-ocp
-      gateway_host: 'precise-prefix-cache-routing-epp'
+      guide_name: optimized-baseline
+      namespace: llm-d-nightly-inference-cks
+      gateway_host: 'optimized-baseline-epp'
       custom_deploy_script: |
         export GAIE_VERSION=v1.5.0
         export ROUTER_CHART_VERSION=v0
-        export GUIDE_NAME="precise-prefix-cache-routing"
+        export GUIDE_NAME="optimized-baseline"
         export INFRA_PROVIDER="base"
-        yq '.spec.template.spec.priorityClassName="nightly-gpu-critical"' -i guides/${GUIDE_NAME}/modelserver/gpu/vllm/${INFRA_PROVIDER}/patch-vllm.yaml
-        yq '.spec.replicas=2' -i guides/${GUIDE_NAME}/modelserver/gpu/vllm/${INFRA_PROVIDER}/patch-vllm.yaml
         kubectl apply -n ${NAMESPACE} -k guides/${GUIDE_NAME}/modelserver/gpu/vllm/${INFRA_PROVIDER}
         helm install ${GUIDE_NAME} \
           oci://ghcr.io/llm-d/charts/llm-d-router-standalone-dev \
           -f guides/recipes/router/base.values.yaml \
           -f guides/${GUIDE_NAME}/router/${GUIDE_NAME}.values.yaml \
           -n ${NAMESPACE} --version ${ROUTER_CHART_VERSION}
+      accelerator_type: H100
       required_gpus: 2
       recommended_gpus: 4
       pod_wait_timeout: '30m'

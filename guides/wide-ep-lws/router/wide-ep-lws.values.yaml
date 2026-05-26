@@ -40,7 +40,3 @@ router:
             weight: 2
           - pluginRef: prefix-cache-scorer
             weight: 3
-
-  modelServers:
-    matchLabels:
-      llm-d.ai/guide: "wide-ep-lws"

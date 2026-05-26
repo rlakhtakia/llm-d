@@ -67,7 +67,6 @@ export GUIDE_NAME="precise-prefix-cache-routing"
 export NAMESPACE="llm-d-${GUIDE_NAME}"
 export REPO_ROOT=$(realpath $(git rev-parse --show-toplevel))
 ```
-
 - Install the Gateway API Inference Extension CRDs:
 
 ```bash

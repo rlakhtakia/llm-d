@@ -50,10 +50,6 @@ router:
       auth:
         secretName: wide-ep-gateway-sa-metrics-reader-secret
 
-  modelServers:
-    targetPorts:
-      - number: 8000
-      - number: 8001
       - number: 8002
       - number: 8003
       - number: 8004
