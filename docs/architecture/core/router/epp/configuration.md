@@ -189,7 +189,6 @@ If unspecified, `openai-parser` is used by default.
 #### Admitters & Data Producers
 
 Admitters and Data Producers are specialized plugins that execute during the initial request processing phase:
-
 - **Admitters** perform early checks to accept or reject requests before they enter the queue.
 - **Data Producers** gather per request contextual information (like predicted latency or prefix cache status) required by downstream components.
 

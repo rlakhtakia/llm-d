@@ -43,16 +43,16 @@ The precise implementation provides 100% accuracy by leveraging actual token dat
 
 ### How it Works
 
+<<<<<<< HEAD
 1. **Exact Tokenization**: The `token-producer` plugin sends the prompt to vLLM's HTTP render endpoint (`/v1/completions/render`) — typically a `vllm launch render` sidecar in the EPP pod (loopback) or a shared render Service — to get exact Token IDs. (The legacy gRPC-over-UDS tokenizer backend is deprecated.)
 2. **Real-time Events**: Model servers (like vLLM) are configured to emit `KVEvents` over ZeroMQ (ZMQ) whenever their internal KV cache changes (blocks added or evicted).
 3. **Global Index**: The **KV-Cache Indexer** subscribes to these events and maintains a precise, globally consistent view of exactly which token blocks reside on which Pods.
 4. **Precise Matching**: The `prefix-cache-scorer`, reading the `precise-prefix-cache-producer`'s match info, scores each candidate pod by how much of the exact Token-ID prefix is resident in this global index.
-5. **Speculative Indexing**: To close the "blind spot" between a routing decision and the arrival of the subsequent `KVEvent`, the producer can proactively add "speculative" entries to the index immediately after routing.
-
-### Pros & Cons
-
-- **Pros**: 100% precision; handles complex cache eviction policies; natively supports Prefill/Decode disaggregation (by identifying specific blocks for transfer).
-- **Cons**: Requires additional infrastructure (vLLM render endpoint, ZMQ connectivity); slightly higher resource overhead; requires model server support for emitting KV-cache events.
+=======
+1. **Exact Tokenization**: The `tokenizer` plugin sends the prompt to a high-performance tokenizer service (typically running as a sidecar or a local UDS service) to get exact Token IDs.
+2. **Real-time Events**: Model servers (like vLLM) are configured to emit `KVEvents` over ZeroMQ (ZMQ) whenever their internal KV cache changes (blocks added or evicted).
+3. **Global Index**: The **KV-Cache Indexer** subscribes to these events and maintains a precise, globally consistent view of exactly which token blocks reside on which Pods.
+4. **Precise Matching**: The `precise-prefix-cache-scorer` matches the exact Token IDs against this global index.
 
 ---
 
