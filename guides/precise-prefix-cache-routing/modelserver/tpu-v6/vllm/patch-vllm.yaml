@@ -14,17 +14,16 @@ spec:
           command: ["vllm", "serve"]
           # Precise prefix cache on TPU: the TPU backend may constrain block
           # sizes differently from CUDA. Keep scorer.tokenProcessorConfig.blockSize
-          # in sync with --block-size here, and update `modelName` in
-          # router/precise-prefix-cache-routing.values.yaml to Llama-3.1-70B-Instruct.
+          # in sync with --block-size here, and ensure `modelName` in
+          # router/precise-prefix-cache-routing.values.yaml is set to Qwen/Qwen3-32B.
           args:
-            - "meta-llama/Llama-3.1-70B-Instruct"
+            - "Qwen/Qwen3-32B"
             - "--port=$(POD_PORT)"
             - "--max-model-len=4096"
-            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--tensor-parallel-size=8"
             - "--block-size=64"
             - "--kv-events-config"
-            - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@meta-llama/Llama-3.1-70B-Instruct"}'
+            - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@Qwen/Qwen3-32B"}'
             # Uncomment for distributed tracing
             # - "--otlp-traces-endpoint=http://otel-collector:4317"
             # - "--collect-detailed-traces=all"
