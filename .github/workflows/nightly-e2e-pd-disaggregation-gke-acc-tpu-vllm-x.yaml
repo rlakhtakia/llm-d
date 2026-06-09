@@ -57,6 +57,10 @@ on:
         type: 'string'
         default: '2x4'
 
+#  push:
+#    branches:
+#      - main
+
   schedule:
     - cron: '30 2 * * *'  # 02:30 UTC daily (staggered from optimized-baseline TPU)
 
@@ -69,8 +73,7 @@ concurrency:
 
 jobs:
   nightly:
-    if: github.repository == 'llm-d/llm-d'
-    uses: llm-d/llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@main
+    uses: rlakhtakia/llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@main
     with:
       scenario_dir: ${{ inputs.scenario_dir || 'guides' }}
       standup_method: ${{ inputs.standup_method || 'kustomize' }}
@@ -93,7 +96,7 @@ jobs:
       verbose: ${{ inputs.verbose || 'false' }}
       harness: ${{ inputs.harness || 'inference-perf' }}
       workload: ${{ inputs.workload || 'sanity_random.yaml' }}
-#      workload: ${{ inputs.workload || 'guide_pd_disaggregation_1.yaml' }}
       cleanup: ${{ inputs.cleanup || 'true' }}
       tpu_chips: ${{ inputs.tpu_chips || '16' }}
       tpu_topology: ${{ inputs.tpu_topology || '2x4' }}
+    secrets: inherit
