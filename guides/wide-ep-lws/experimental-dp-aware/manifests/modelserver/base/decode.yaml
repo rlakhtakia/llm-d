@@ -119,11 +119,11 @@ spec:
                 # For GKE A4 (B200) Blackwell instances, single-pod prefill groups (LWS_GROUP_SIZE=1)
                 # and decode leader pods must rendezvous over local loopback (127.0.0.1) to avoid socket
                 # binding collisions on secondary RDMA network interfaces (eth2-eth9) during startup.
-                if [ "${LWS_GROUP_SIZE:-1}" -eq 1 ] || [ "${LWS_WORKER_INDEX:-0}" -eq 0 ]; then
-                    # Prefill pods AND the Decode Leader pod automatically use safe local loopback
+                if [ "${LWS_GROUP_SIZE:-1}" -eq 1 ]; then
+                    # Prefill pods (LWS_GROUP_SIZE=1) rendezvous over safe local loopback
                     DP_ADDR="127.0.0.1"
                 else
-                    # Decode Worker pods dynamically look up the leader's network IP
+                    # Decode pods (LWS_GROUP_SIZE=2) coordinate across nodes using headless leader service
                     DP_ADDR="${LWS_LEADER_ADDRESS}"
                 fi
 
@@ -140,7 +140,17 @@ spec:
                   # To enable tracing, add:
                   # --otlp-traces-endpoint http://otel-collector:4317 \
                   # --collect-detailed-traces all
+                )
 
+                 for i in {0..7}; do
+                   CUDA_VISIBLE_DEVICES="$i" vllm serve \
+                     deepseek-ai/DeepSeek-R1-0528 \
+                     --host=0.0.0.0 \
+                     --port=$((8200 + i)) \
+                     --data-parallel-rank=$((START_RANK + i)) \
+                     "${COMMON_VLLM_ARGS[@]}" &
+                 done
+                 wait
             env:
               - name: HF_TOKEN
                 valueFrom:
@@ -166,6 +176,12 @@ spec:
                 value: /usr/lib64
               - name: VLLM_SKIP_P2P_CHECK
                 value: "1"
+              - name: VLLM_WORKER_MULTIPROC_METHOD
+                value: "spawn"
+              - name: VLLM_DISABLE_PYNCCL
+                value: "1"
+              - name: NCCL_DEBUG
+                value: INFO
               - name: VLLM_USE_DEEP_GEMM
                 value: "1"
               - name: NVIDIA_GDRCOPY
@@ -232,7 +248,7 @@ spec:
             startupProbe:
               httpGet:
                 path: /health
-                port: supervisor
+                port: 8200
               initialDelaySeconds: 0
               periodSeconds: 1
               timeoutSeconds: 5
@@ -240,14 +256,14 @@ spec:
             livenessProbe:
               httpGet:
                 path: /health
-                port: supervisor
+                port: 8200
               periodSeconds: 30
               timeoutSeconds: 5
               failureThreshold: 3
             readinessProbe:
               httpGet:
-                path: /readyz
-                port: supervisor
+                path: /health
+                port: 8200
               periodSeconds: 10
               timeoutSeconds: 5
               failureThreshold: 3

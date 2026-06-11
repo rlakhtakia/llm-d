@@ -1,65 +1,41 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../gke
+  - ../gke-common
 patches:
+  - target:
+      kind: LeaderWorkerSet
+    patch: |-
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/affinity/nodeAffinity
+        value:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: cloud.google.com/gke-accelerator
+                    operator: In
+                    values:
+                      - nvidia-b200
   - target:
       kind: LeaderWorkerSet
       name: wide-ep-llm-d-decode
     patch: |-
-      apiVersion: leaderworkerset.x-k8s.io/v1
-      kind: LeaderWorkerSet
-      metadata:
-        name: wide-ep-llm-d-decode
-      spec:
-        leaderWorkerTemplate:
-          workerTemplate:
-            spec:
-              volumes:
-                - name: dshm
-                  emptyDir:
-                    medium: Memory
-                    sizeLimit: 64Gi
-              containers:
-                - name: vllm
-                  env:
-                    - name: KV_CACHE_MEMORY_BYTES
-                      value: "63000000000"
-                    - name: NCCL_NET
-                      value: "Socket"
-                    - name: NCCL_TUNER_CONFIG_PATH
-                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
-                    - name: NCCL_DEBUG
-                      value: "INFO"
-                    - name: BASH_ENV
-                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: KV_CACHE_MEMORY_BYTES
+          value: "50000000000"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: NCCL_TUNER_CONFIG_PATH
+          value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
   - target:
       kind: LeaderWorkerSet
       name: wide-ep-llm-d-prefill
     patch: |-
-      apiVersion: leaderworkerset.x-k8s.io/v1
-      kind: LeaderWorkerSet
-      metadata:
-        name: wide-ep-llm-d-prefill
-      spec:
-        leaderWorkerTemplate:
-          workerTemplate:
-            spec:
-              volumes:
-                - name: dshm
-                  emptyDir:
-                    medium: Memory
-                    sizeLimit: 64Gi
-              containers:
-                - name: vllm
-                  env:
-                    - name: KV_CACHE_MEMORY_BYTES
-                      value: "45000000000"
-                    - name: NCCL_NET
-                      value: "Socket"
-                    - name: NCCL_TUNER_CONFIG_PATH
-                      value: "/usr/local/gib/configs/tuner_config_a4.txtpb"
-                    - name: NCCL_DEBUG
-                      value: "INFO"
-                    - name: BASH_ENV
-                      value: "/usr/local/gib/scripts/set_nccl_env.sh"
+      - op: add
+        path: /spec/leaderWorkerTemplate/workerTemplate/spec/containers/0/env/-
+        value:
+          name: NCCL_TUNER_CONFIG_PATH
+          value: "/usr/local/gib/configs/tuner_config_a4.txtpb"

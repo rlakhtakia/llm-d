@@ -1,0 +1,56 @@
+endpoint:
+  stack_name: wide-ep-llm-d
+  model: deepseek-ai/DeepSeek-R1-0528
+  namespace: rlakhtakia-test
+  base_url: http://34.0.153.115:80
+  hf_token_secret: llm-d-hf-token
+
+control:
+  kubectl: kubectl
+
+harness:
+  name: inference-perf
+  results_pvc: dummy
+  namespace: rlakhtakia-test
+  parallelism: 1
+  wait_timeout: 6000
+  image: ghcr.io/llm-d/llm-d-benchmark:v0.5.2
+
+env:
+  - name: RAYON_NUM_THREADS
+    value: "4"
+
+workload:
+  bench_random:
+    load:
+      type: constant
+      stages:
+      - rate: 30
+        duration: 40
+    api:
+      type: completion
+      streaming: true
+    server:
+      type: vllm
+      model_name: deepseek-ai/DeepSeek-R1-0528
+      base_url: http://34.0.153.115:80
+      ignore_eos: true
+    tokenizer:
+      pretrained_model_name_or_path: deepseek-ai/DeepSeek-R1-0528
+    data:
+      type: random
+      input_distribution:
+        min: 8000
+        max: 8000
+        mean: 8000
+        std_dev: 0
+      output_distribution:
+        min: 1000
+        max: 1000
+        mean: 1000
+        std_dev: 0
+    report:
+      request_lifecycle:
+        summary: true
+        per_stage: true
+        per_request: true

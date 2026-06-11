@@ -15,5 +15,10 @@ CLAUDE.md
 # helm chart directories via kustomize
 **/charts/
 
-# AI
 .claude
+
+# Benchmarks
+**/results_h200/
+**/results_b200/
+**/run_config_*200.yaml
+
