@@ -39,8 +39,8 @@ on:
       workload:
         description: 'Workload profile to be used during "run" operation (check list under "workload/profiles")'
         required: false
-        default: 'sanity_random.yaml'
-#        default: 'guide_optimized-baseline_1.yaml'
+        # default: 'sanity_random.yaml'
+        default: 'guide_optimized-baseline_2.yaml'
         type: 'string'
       cleanup:
         description: 'Cleanup the llm-d stack stood up by this workflow'
@@ -62,8 +62,6 @@ on:
 #    branches:
 #      - main
 
-  schedule:
-    - cron: '0 10 * * *'  # 10:00 UTC daily
 permissions:
   contents: write
   actions: read
@@ -74,7 +72,7 @@ concurrency:
 
 jobs:
   nightly:
-    uses: llm-d/llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@main
+    uses: rlakhtakia/llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@main
     with:
       scenario_dir: ${{ inputs.scenario_dir || 'guides' }}
       standup_method: ${{ inputs.standup_method || 'kustomize' }}
@@ -96,11 +94,14 @@ jobs:
       dry_run: ${{ inputs.dry_run || 'false' }}
       verbose: ${{ inputs.verbose || 'false' }}
       harness: ${{ inputs.harness || 'inference-perf' }}
-      workload: ${{ inputs.workload || 'sanity_random.yaml' }}
-#      workload: ${{ inputs.workload || 'guide_optimized-baseline_1.yaml' }}
+      # workload: ${{ inputs.workload || 'sanity_random.yaml' }}
+      workload: ${{ inputs.workload || 'guide_optimized-baseline_1.yaml' }}
       cleanup: ${{ inputs.cleanup || 'true' }}
       tpu_chips: ${{ inputs.tpu_chips || '16' }}
       tpu_topology: ${{ inputs.tpu_topology || '2x4' }}
+      data_access_timeout: '3600'
+      wait_timeout: '3600'
+      job_timeout: '3600s'
     secrets: inherit
 
   update-badge:
