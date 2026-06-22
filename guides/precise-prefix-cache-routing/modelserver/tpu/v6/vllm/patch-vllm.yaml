@@ -13,7 +13,7 @@ spec:
           args:
             - "Qwen/Qwen3-32B"
             - "--port=$(POD_PORT)"
-            - "--max-model-len=4096"
+            - "--max-model-len=9216"
             - "--tensor-parallel-size=8"
             - "--block-size=64"
             - "--kv-events-config"
