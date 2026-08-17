@@ -1,0 +1,14 @@
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: optimized-baseline
+  namespace: torch-tpu-test
+spec:
+  selector:
+    matchLabels:
+      llm-d.ai/guide: optimized-baseline
+      llm-d.ai/model: Qwen3-32B
+      llm-d.ai/role: decode
+  endpoints:
+  - port: 8000
+    interval: 15s
