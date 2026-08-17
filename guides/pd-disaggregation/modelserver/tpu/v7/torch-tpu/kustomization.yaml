@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/torch-tpu
+
+namePrefix: pd-disaggregation-tpu-v7-torch-tpu-
+
+labels:
+  - pairs:
+      llm-d.ai/model: Qwen3.5-397B-A17B-FP8
+      llm-d.ai/guide: pd-disaggregation
+      llm-d.ai/accelerator-variant: tpu-v7
+      llm-d.ai/accelerator-vendor: google
+      llm-d.ai/engine-type: torch-tpu
+    includeSelectors: true
+    includeTemplates: true
+patches:
+  - path: patch-decode.yaml
+  - path: patch-prefill.yaml
