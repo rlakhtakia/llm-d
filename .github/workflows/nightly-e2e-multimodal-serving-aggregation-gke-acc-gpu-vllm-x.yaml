@@ -79,12 +79,11 @@ concurrency:
 
 jobs:
   nightly:
-    uses: /llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@main
+    uses: rlakhtakia/llm-d-infra/.github/workflows/reusable-ci-nightly-benchmark.yaml@test
     with:
       scenario_dir: ${{ inputs.scenario_dir || 'guides' }}
       standup_method: ${{ inputs.standup_method || 'kustomize' }}
       standup_scenario: ${{ inputs.standup_scenario || 'multimodal-serving/aggregation' }}
-      standup_timeout: "4800"
       decode_pods: ${{ inputs.decode_pods || 'auto' }}
       prefill_pods: ${{ inputs.prefill_pods || 'auto' }}
       accelerator_type: ${{ inputs.accelerator_type || 'gpu' }}
