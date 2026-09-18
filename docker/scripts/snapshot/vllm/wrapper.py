@@ -95,4 +95,3 @@ def patch_vllm_lifespan(app, snapshot_provider: Optional[GKESnapshotProvider] = 
     app.router.lifespan_context = patched_lifespan
     logger.info("Successfully patched vLLM FastAPI lifespan context for GKE snapshotting.")
     return app
-

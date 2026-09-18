@@ -9,6 +9,7 @@ A modular container snapshot provider and vLLM lifespan wrapper that enables fas
 Deploying large language models (LLMs) on Kubernetes often incurs high cold-start latencies due to downloading weights, loading them into memory, allocating GPU VRAM, and compiling CUDA graphs.
 
 This package provides a drop-in launcher and snapshot provider that hooks into vLLM's FastAPI application lifespan to:
+
 1. Initialize the vLLM engine and compile CUDA graphs during container cold start.
 2. Put the vLLM engine to sleep (`engine.sleep(level=1)`) to release physical GPU VRAM while preserving virtual memory mappings.
 3. Purge cached model weight files from disk to minimize the checkpoint storage footprint.

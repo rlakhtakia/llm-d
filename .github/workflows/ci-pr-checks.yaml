@@ -43,4 +43,3 @@ jobs:
       - name: Run unit tests
         run: |
           python3 -m unittest discover -t . -s docker/scripts/snapshot
-

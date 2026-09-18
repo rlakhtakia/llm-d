@@ -22,7 +22,6 @@ metric reported below is defined in [Metric Definitions](#metric-definitions).
 > identical workload, model, and autoscaling configuration — only the
 > model-server lifecycle owner differs.
 
-
 These three passes use the autoscaling setup from
 [keda-epp-queue][queue-guide] — KEDA polling the EPP
 `llm_d_epp_flow_control_queue_size` and `llm_d_epp_request_running` gauges, EPP

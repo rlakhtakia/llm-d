@@ -86,7 +86,7 @@ def publish_redis_queue(namespace, redis_deploy, queue_name, team, model_code, m
     now = int(time.time())
     dl = now + ttl
     run_id = f"{now}-{random.randint(1000, 9999)}"
-    
+
     # Build ZADD args in batches of 50
     batch_size = 50
     for chunk_start in range(1, count + 1, batch_size):

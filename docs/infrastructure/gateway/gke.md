@@ -107,7 +107,7 @@ helm install ${GUIDE_NAME} \
   -n ${NAMESPACE} --version ${ROUTER_CHART_VERSION}
 ```
 
-2. **Deploy the model server with the GKE overlay:**
+1. **Deploy the model server with the GKE overlay:**
 
 ```bash
 export ACCELERATOR_TYPE=gpu # options: gpu, amd, xpu, hpu, tpu/v6, tpu/v7, cpu
@@ -116,14 +116,17 @@ kubectl apply -n ${NAMESPACE} -k ${REPO_ROOT}/guides/${GUIDE_NAME}/modelserver/$
 ```
 
 ### Option B: High Availability with Preferred Backends
+
 Deploying Endpoint Picker (EPP) with [GKE Preferred Backends](https://docs.cloud.google.com/load-balancing/docs/service-lb-policy#preferred-backends) enables an active-passive routing topology backed by Cloud Load Balancing. Steady-state ext_proc traffic routes exclusively to the primary EPP replica (epp-0) to keep KV-cache tracking and request state centralized. If epp-0 becomes unhealthy, Cloud Load Balancing shifts traffic to the warm standby replica (epp-1), with InferencePool fail-open mode providing an additional safety net against dropped requests.
 
 #### Key Benefits
+
 * **State Consistency**: Directs 100% of steady-state `ext_proc` traffic to the primary EPP instance (`epp-0`), preserving KV-cache state and request scheduling context.
 * **Zero-Downtime Failover**: If the primary EPP pod crashes or undergoes maintenance, Cloud Load Balancer detects the failure via active gRPC health checks and immediately routes traffic to the warm standby replica (`epp-1`).
 * **Fail-Open Resilience**: Paired with `failureMode: FailOpen` on the `InferencePool`, transient routing blips bypass EPP and forward directly to model servers without dropping user requests.
 
 #### 1. **Deploy the llm-d Router with Preferred Backends enabled:**
+>
 > [!NOTE]
 > When Preferred Backends is enabled, the chart deploys a single StatefulSet where pod ordinals map to target priority tiers and generates corresponding GCPBackendPolicy resources for each tier.
 
@@ -144,6 +147,7 @@ helm install ${GUIDE_NAME} \
 ```
 
 Key configuration parameters (see [`values.yaml`](https://github.com/llm-d/llm-d-router/blob/main/config/charts/llm-d-router-gateway/values.yaml)):
+
 * `preferredReplicas` (Default: `1`): the replica count for active primary pod ordinals pinned to the `PREFERRED` backend preference tier (`epp-0`). Setting a value greater than 1 scales concurrent active routing capacity.
 * `defaultReplicas` (Default: `1`): the replica count for standby pod ordinals pinned to the `DEFAULT` backend preference tier (`epp-1`). Setting a value greater than 1 scales warm standby failover capacity.
 * `balancingMode` (Default: `RATE`): the [calculation mode](https://docs.cloud.google.com/load-balancing/docs/backend-service#traffic_distribution) used to determine load thresholds (`RATE`, `UTILIZATION`, or `CONNECTION`).

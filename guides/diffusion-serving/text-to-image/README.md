@@ -157,7 +157,6 @@ kubectl run curl-debug --rm -it \
 
 Send an OpenAI-compatible image generation request. `"response_format": "b64_json"` requests the image inline, which is the reliable form behind the router. (The `jq` filter truncates the base64 payload so the response stays readable):
 
-
 ```bash
 curl -X POST http://${IP}/v1/images/generations \
     -H 'Content-Type: application/json' \
@@ -217,7 +216,6 @@ Different engines answer with different slightly different format:
   "inference_time_s": 9.88
 }
 ```
-
 
 ---
 

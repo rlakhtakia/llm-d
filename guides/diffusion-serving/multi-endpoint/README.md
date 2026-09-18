@@ -142,6 +142,7 @@ helm install ${GUIDE_NAME} \
     --set httpRoute.inferenceGatewayName=llm-d-inference-gateway \
     -n ${NAMESPACE} --version ${ROUTER_CHART_VERSION}
 ```
+
 </details>
 
 ### 2. Apply Multimodal HTTPRoutes
@@ -184,6 +185,7 @@ export IP=$(kubectl get service ${GUIDE_NAME}-epp -n ${NAMESPACE} -o jsonpath='{
 ```bash
 export IP=$(kubectl get gateway llm-d-inference-gateway -n ${NAMESPACE} -o jsonpath='{.status.addresses[0].value}')
 ```
+
 </details>
 
 ### 2. Open a Debug Container
