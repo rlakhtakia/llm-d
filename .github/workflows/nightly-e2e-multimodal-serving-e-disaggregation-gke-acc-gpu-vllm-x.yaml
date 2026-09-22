@@ -105,7 +105,8 @@ jobs:
       cleanup: ${{ inputs.cleanup || 'true' }}
       matrix_type: ${{ inputs.matrix_type || 'nightly' }}
       harness_resources: ${{ inputs.harness_resources || '32/64Gi' }}
-    secrets: inherit
+    secrets:
+      GKE_SA_KEY: ${{ secrets.GKE_SA_KEY }}
 
   update-badge:
     needs: [nightly]

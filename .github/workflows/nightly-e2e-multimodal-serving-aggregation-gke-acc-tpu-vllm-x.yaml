@@ -117,7 +117,8 @@ jobs:
       tpu_topology: ${{ inputs.tpu_topology || '2x2x1' }}
       matrix_type: ${{ inputs.matrix_type || 'nightly' }}
       harness_resources: ${{ inputs.harness_resources || '32/64Gi' }}
-    secrets: inherit
+    secrets:
+      GKE_SA_KEY: ${{ secrets.GKE_SA_KEY }}
 
   update-badge:
     needs: [nightly]
