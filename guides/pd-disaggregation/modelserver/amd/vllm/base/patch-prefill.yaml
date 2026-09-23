@@ -16,8 +16,6 @@ spec:
             - "--block-size=128"
             - "--kv-transfer-config"
             - '{"kv_connector":"NixlConnector", "kv_role":"kv_producer"}'
-            # ROCM_ATTN required when prefill TP != decode TP; upcoming general fix.
-            - "--attention-backend=ROCM_ATTN"
             - "--max-model-len=32000"
           env:
             - name: HF_TOKEN
